@@ -1,20 +1,50 @@
-from src.power import power_function
-from src.constants import SAMPLE_CONSTANT
+import os
+import logging
+
+from src.auxilary_functions.create_json import create_test_json_file
+from src.auxilary_functions.task_output import task_output
+from src.loggins import setup_logging
+from src.processor import TaskProcessor
+from src.sources.api_source import ApiSource
+from src.sources.generator_source import GeneratorSource
+from src.sources.file_source import FileSource
+
+logger = logging.getLogger(__name__)
 
 
-def main() -> None:
-    """
-    Обязательнная составляющая программ, которые сдаются. Является точкой входа в приложение
-    :return: Данная функция ничего не возвращает
-    """
+def main():
+    """Основная функция, демонстрирующая работу системы."""
 
-    target, degree = map(int, input("Введите два числа разделенные пробелом: ").split(" "))
+    setup_logging()
 
-    result = power_function(target=target, power=degree)
+    # создание json файла
+    json_filename = "tasks.json"
+    create_test_json_file(json_filename)
 
-    print(result)
+    # инициализация процессора
+    processor = TaskProcessor()
 
-    print(SAMPLE_CONSTANT)
+    # Инициализация источников
+    sources = [
+        ApiSource(),
+        GeneratorSource(count=2),
+        FileSource(file_path=json_filename)
+    ]
+
+    # Регистрация с проверкой контракта
+    for s in sources:
+        try:
+            processor.register_source(s)
+        except TypeError as e:
+            logger.error(f"Не удалось зарегистрировать источник: {e}")
+
+    # Сбор и вывод задач
+    all_tasks = processor.collect_tasks()
+    task_output(all_tasks)
+
+    # удаление демонстрационного json файла
+    os.remove(json_filename)
+
 
 if __name__ == "__main__":
     main()
